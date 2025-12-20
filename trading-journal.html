@@ -536,6 +536,71 @@
             font-size: 13px;
         }
 
+        /* Risk Calculator */
+        .risk-calculator {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 20px;
+        }
+
+        .risk-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .risk-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .risk-item.loss {
+            background: var(--red-dim);
+        }
+
+        .risk-item.profit {
+            background: var(--green-dim);
+        }
+
+        .risk-item.ratio {
+            background: var(--blue-dim);
+        }
+
+        .risk-label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .risk-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .risk-item.loss .risk-value {
+            color: var(--red);
+        }
+
+        .risk-item.profit .risk-value {
+            color: var(--green);
+        }
+
+        .risk-item.ratio .risk-value {
+            color: var(--blue);
+        }
+
+        .exit-fields {
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+            margin-top: 8px;
+        }
+
         /* Watchlist specific */
         .price-info {
             font-family: 'JetBrains Mono', monospace;
@@ -706,8 +771,9 @@
 
                     <div class="form-group">
                         <label>Статус</label>
-                        <select id="tradeStatus">
+                        <select id="tradeStatus" onchange="onStatusChange()">
                             <option value="open">🟡 Открыта</option>
+                            <option value="partial">🟠 Частично закрыта</option>
                             <option value="closed">🟢 Закрыта</option>
                             <option value="stopped">🔴 Стоп</option>
                         </select>
@@ -727,22 +793,54 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Цена входа</label>
-                            <input type="number" id="tradeEntryPrice" step="0.01" required placeholder="150.00">
+                            <input type="number" id="tradeEntryPrice" step="0.01" required placeholder="150.00" oninput="calculateRisk()">
                         </div>
                         <div class="form-group">
-                            <label>Цена выхода</label>
-                            <input type="number" id="tradeExitPrice" step="0.01" placeholder="160.00">
+                            <label>Кол-во акций</label>
+                            <input type="number" id="tradeShares" required placeholder="100" oninput="calculateRisk()">
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Кол-во акций</label>
-                            <input type="number" id="tradeShares" required placeholder="100">
+                            <label>Stop Loss</label>
+                            <input type="number" id="tradeStopLoss" step="0.01" placeholder="145.00" oninput="calculateRisk()">
                         </div>
                         <div class="form-group">
-                            <label>Стоп-лосс</label>
-                            <input type="number" id="tradeStopLoss" step="0.01" placeholder="145.00">
+                            <label>Take Profit</label>
+                            <input type="number" id="tradeTakeProfit" step="0.01" placeholder="165.00" oninput="calculateRisk()">
+                        </div>
+                    </div>
+
+                    <!-- Risk/Reward Calculator -->
+                    <div class="risk-calculator" id="riskCalculator">
+                        <div class="risk-row">
+                            <div class="risk-item loss">
+                                <span class="risk-label">Риск (SL)</span>
+                                <span class="risk-value" id="riskLoss">—</span>
+                            </div>
+                            <div class="risk-item profit">
+                                <span class="risk-label">Прибыль (TP)</span>
+                                <span class="risk-value" id="riskProfit">—</span>
+                            </div>
+                            <div class="risk-item ratio">
+                                <span class="risk-label">R/R</span>
+                                <span class="risk-value" id="riskRatio">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exit fields - shown only when status is not "open" -->
+                    <div class="exit-fields" id="exitFields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Дата выхода</label>
+                                <input type="date" id="tradeExitDate">
+                            </div>
+                            <div class="form-group">
+                                <label>Цена выхода</label>
+                                <input type="number" id="tradeExitPrice" step="0.01" placeholder="160.00">
+                            </div>
                         </div>
                     </div>
 
@@ -751,7 +849,7 @@
                         <textarea id="tradeThesis" placeholder="Описание идеи..."></textarea>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" id="exitReasonGroup" style="display: none;">
                         <label>Причина выхода</label>
                         <textarea id="tradeExitReason" placeholder="Почему закрыл позицию..."></textarea>
                     </div>
@@ -1037,12 +1135,85 @@
             document.getElementById(tab + 'Tab').classList.add('active');
         }
 
+        // Risk Calculator
+        function calculateRisk() {
+            const direction = document.getElementById('tradeDirection').value;
+            const entryPrice = parseFloat(document.getElementById('tradeEntryPrice').value) || 0;
+            const shares = parseInt(document.getElementById('tradeShares').value) || 0;
+            const stopLoss = parseFloat(document.getElementById('tradeStopLoss').value) || 0;
+            const takeProfit = parseFloat(document.getElementById('tradeTakeProfit').value) || 0;
+
+            const riskLossEl = document.getElementById('riskLoss');
+            const riskProfitEl = document.getElementById('riskProfit');
+            const riskRatioEl = document.getElementById('riskRatio');
+
+            if (!entryPrice || !shares) {
+                riskLossEl.textContent = '—';
+                riskProfitEl.textContent = '—';
+                riskRatioEl.textContent = '—';
+                return;
+            }
+
+            let potentialLoss = 0;
+            let potentialProfit = 0;
+
+            if (direction === 'long') {
+                if (stopLoss > 0) {
+                    potentialLoss = (entryPrice - stopLoss) * shares;
+                }
+                if (takeProfit > 0) {
+                    potentialProfit = (takeProfit - entryPrice) * shares;
+                }
+            } else {
+                // Short
+                if (stopLoss > 0) {
+                    potentialLoss = (stopLoss - entryPrice) * shares;
+                }
+                if (takeProfit > 0) {
+                    potentialProfit = (entryPrice - takeProfit) * shares;
+                }
+            }
+
+            riskLossEl.textContent = potentialLoss > 0 ? `-$${potentialLoss.toFixed(0)}` : '—';
+            riskProfitEl.textContent = potentialProfit > 0 ? `+$${potentialProfit.toFixed(0)}` : '—';
+
+            if (potentialLoss > 0 && potentialProfit > 0) {
+                const ratio = potentialProfit / potentialLoss;
+                riskRatioEl.textContent = `1:${ratio.toFixed(1)}`;
+                riskRatioEl.style.color = ratio >= 2 ? 'var(--green)' : ratio >= 1 ? 'var(--yellow)' : 'var(--red)';
+            } else {
+                riskRatioEl.textContent = '—';
+                riskRatioEl.style.color = '';
+            }
+        }
+
+        // Status Change Handler
+        function onStatusChange() {
+            const status = document.getElementById('tradeStatus').value;
+            const exitFields = document.getElementById('exitFields');
+            const exitReasonGroup = document.getElementById('exitReasonGroup');
+
+            if (status === 'open') {
+                exitFields.style.display = 'none';
+                exitReasonGroup.style.display = 'none';
+            } else {
+                exitFields.style.display = 'block';
+                exitReasonGroup.style.display = 'block';
+            }
+        }
+
         // Trades
         function showAddTrade() {
             editingTradeId = null;
             document.getElementById('tradeModalTitle').textContent = 'Новая сделка';
             document.getElementById('tradeForm').reset();
             document.getElementById('tradeEntryDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('tradeStatus').value = 'open';
+            document.getElementById('exitFields').style.display = 'none';
+            document.getElementById('exitReasonGroup').style.display = 'none';
+            document.getElementById('riskLoss').textContent = '—';
+            document.getElementById('riskProfit').textContent = '—';
+            document.getElementById('riskRatio').textContent = '—';
             document.getElementById('tradeModal').classList.add('active');
         }
 
@@ -1062,8 +1233,21 @@
             document.getElementById('tradeExitPrice').value = trade.exitPrice || '';
             document.getElementById('tradeShares').value = trade.shares;
             document.getElementById('tradeStopLoss').value = trade.stopLoss || '';
+            document.getElementById('tradeTakeProfit').value = trade.takeProfit || '';
             document.getElementById('tradeThesis').value = trade.thesis || '';
             document.getElementById('tradeExitReason').value = trade.exitReason || '';
+            
+            // Show/hide exit fields based on status
+            const status = trade.status || 'closed';
+            if (status === 'open') {
+                document.getElementById('exitFields').style.display = 'none';
+                document.getElementById('exitReasonGroup').style.display = 'none';
+            } else {
+                document.getElementById('exitFields').style.display = 'block';
+                document.getElementById('exitReasonGroup').style.display = 'block';
+            }
+            
+            calculateRisk();
             document.getElementById('tradeModal').classList.add('active');
         }
 
@@ -1081,9 +1265,17 @@
                 exitPrice: parseFloat(document.getElementById('tradeExitPrice').value) || 0,
                 shares: parseInt(document.getElementById('tradeShares').value) || 0,
                 stopLoss: parseFloat(document.getElementById('tradeStopLoss').value) || 0,
+                takeProfit: parseFloat(document.getElementById('tradeTakeProfit').value) || 0,
                 thesis: document.getElementById('tradeThesis').value,
                 exitReason: document.getElementById('tradeExitReason').value
             };
+
+            // Clear exit data if status is open
+            if (trade.status === 'open') {
+                trade.exitDate = '';
+                trade.exitPrice = 0;
+                trade.exitReason = '';
+            }
 
             const action = editingTradeId ? 'update' : 'add';
             const success = await saveData('trade', trade, action);
@@ -1128,6 +1320,7 @@
                 const statusClass = trade.status || 'closed';
                 const statusLabels = {
                     open: '🟡 Открыта',
+                    partial: '🟠 Частично',
                     closed: '🟢 Закрыта',
                     stopped: '🔴 Стоп'
                 };
@@ -1136,7 +1329,7 @@
                     <tr>
                         <td class="ticker">${trade.ticker}</td>
                         <td><span class="direction ${trade.direction}">${trade.direction.toUpperCase()}</span></td>
-                        <td><span class="status ${statusClass}">${statusLabels[statusClass]}</span></td>
+                        <td><span class="status ${statusClass}">${statusLabels[statusClass] || statusLabels.closed}</span></td>
                         <td>${trade.entryDate}<br><span style="color:var(--text-muted)">$${trade.entryPrice}</span></td>
                         <td>${trade.exitDate || '—'}<br><span style="color:var(--text-muted)">${trade.exitPrice ? '$' + trade.exitPrice : '—'}</span></td>
                         <td class="pnl ${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td>
@@ -1148,6 +1341,9 @@
                 `;
             }).join('');
         }
+
+        // Add event listener for direction change to recalculate risk
+        document.getElementById('tradeDirection').addEventListener('change', calculateRisk);
 
         function calculatePnL(trade) {
             if (!trade.exitPrice || trade.status === 'open') return 0;
