@@ -851,9 +851,9 @@
 
         async function searchTickers(query, dropdown, input) {
             try {
-                // Используем allorigins proxy для обхода CORS
+                // Используем corsproxy.io для обхода CORS
                 const yahooUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0&enableFuzzyQuery=false&quotesQueryId=tss_match_phrase_query`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`;
                 
                 const response = await fetch(proxyUrl);
                 const data = await response.json();
@@ -887,8 +887,7 @@
                 }
             } catch (error) {
                 console.error('Search error:', error);
-                // Fallback - просто скрываем dropdown
-                dropdown.classList.remove('active');
+                dropdown.innerHTML = '<div class="autocomplete-loading">Ошибка поиска</div>';
             }
         }
 
