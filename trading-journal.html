@@ -601,6 +601,61 @@
             margin-top: 8px;
         }
 
+        /* Current Price Display */
+        .current-price-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 14px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            min-height: 46px;
+        }
+
+        .current-price-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .current-price-change {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .current-price-change.up {
+            color: var(--green);
+            background: var(--green-dim);
+        }
+
+        .current-price-change.down {
+            color: var(--red);
+            background: var(--red-dim);
+        }
+
+        .refresh-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .refresh-btn:hover {
+            opacity: 1;
+        }
+
+        .price-loading {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
         /* Watchlist specific */
         .price-info {
             font-family: 'JetBrains Mono', monospace;
@@ -697,6 +752,7 @@
                     <thead>
                         <tr>
                             <th>Тикер</th>
+                            <th>Цена сейчас</th>
                             <th>Направление</th>
                             <th>Статус</th>
                             <th>Вход</th>
@@ -756,10 +812,20 @@
                         <div class="form-group">
                             <label>Тикер</label>
                             <div class="autocomplete-wrapper">
-                                <input type="text" id="tradeTicker" required placeholder="Начни вводить..." autocomplete="off">
+                                <input type="text" id="tradeTicker" required placeholder="Начни вводить..." autocomplete="off" onchange="fetchCurrentPrice()">
                                 <div class="autocomplete-dropdown" id="tickerDropdown"></div>
                             </div>
                         </div>
+                        <div class="form-group">
+                            <label>Текущая цена</label>
+                            <div class="current-price-display" id="currentPriceDisplay">
+                                <span class="current-price-value" id="currentPriceValue">—</span>
+                                <span class="current-price-change" id="currentPriceChange"></span>
+                                <button type="button" class="refresh-btn" onclick="fetchCurrentPrice()" title="Обновить">🔄</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group">
                             <label>Направление</label>
                             <select id="tradeDirection">
@@ -767,16 +833,15 @@
                                 <option value="short">Short</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Статус</label>
-                        <select id="tradeStatus" onchange="onStatusChange()">
-                            <option value="open">🟡 Открыта</option>
-                            <option value="partial">🟠 Частично закрыта</option>
-                            <option value="closed">🟢 Закрыта</option>
-                            <option value="stopped">🔴 Стоп</option>
-                        </select>
+                        <div class="form-group">
+                            <label>Статус</label>
+                            <select id="tradeStatus" onchange="onStatusChange()">
+                                <option value="open">🟡 Открыта</option>
+                                <option value="partial">🟠 Частично закрыта</option>
+                                <option value="closed">🟢 Закрыта</option>
+                                <option value="stopped">🔴 Стоп</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="form-row">
@@ -978,6 +1043,10 @@
                             e.preventDefault();
                             input.value = item.dataset.symbol;
                             dropdown.classList.remove('active');
+                            // Fetch price after selecting ticker
+                            if (input.id === 'tradeTicker') {
+                                fetchCurrentPrice();
+                            }
                         });
                     });
                 } else {
@@ -1214,6 +1283,9 @@
             document.getElementById('riskLoss').textContent = '—';
             document.getElementById('riskProfit').textContent = '—';
             document.getElementById('riskRatio').textContent = '—';
+            document.getElementById('currentPriceValue').textContent = '—';
+            document.getElementById('currentPriceChange').textContent = '';
+            document.getElementById('currentPriceChange').className = 'current-price-change';
             document.getElementById('tradeModal').classList.add('active');
         }
 
@@ -1248,6 +1320,7 @@
             }
             
             calculateRisk();
+            fetchCurrentPrice();
             document.getElementById('tradeModal').classList.add('active');
         }
 
@@ -1325,9 +1398,19 @@
                     stopped: '🔴 Стоп'
                 };
 
+                // Get cached price or show loading
+                const cachedPrice = priceCache[trade.ticker];
+                let priceHtml = '<span class="price-loading">...</span>';
+                if (cachedPrice) {
+                    const sign = cachedPrice.change >= 0 ? '+' : '';
+                    const changeClass = cachedPrice.change >= 0 ? 'up' : 'down';
+                    priceHtml = `$${cachedPrice.price.toFixed(2)}<br><span class="price-change ${changeClass}">${sign}${cachedPrice.change.toFixed(2)}%</span>`;
+                }
+
                 return `
                     <tr>
                         <td class="ticker">${trade.ticker}</td>
+                        <td class="price-cell" data-ticker="${trade.ticker}">${priceHtml}</td>
                         <td><span class="direction ${trade.direction}">${trade.direction.toUpperCase()}</span></td>
                         <td><span class="status ${statusClass}">${statusLabels[statusClass] || statusLabels.closed}</span></td>
                         <td>${trade.entryDate}<br><span style="color:var(--text-muted)">$${trade.entryPrice}</span></td>
@@ -1340,10 +1423,109 @@
                     </tr>
                 `;
             }).join('');
+
+            // Fetch prices for table
+            updateTablePrices();
         }
 
         // Add event listener for direction change to recalculate risk
         document.getElementById('tradeDirection').addEventListener('change', calculateRisk);
+
+        // Fetch current price for ticker
+        async function fetchCurrentPrice() {
+            const ticker = document.getElementById('tradeTicker').value.trim().toUpperCase();
+            const priceEl = document.getElementById('currentPriceValue');
+            const changeEl = document.getElementById('currentPriceChange');
+            
+            if (!ticker) {
+                priceEl.textContent = '—';
+                changeEl.textContent = '';
+                changeEl.className = 'current-price-change';
+                return;
+            }
+
+            priceEl.innerHTML = '<span class="price-loading">Загрузка...</span>';
+            changeEl.textContent = '';
+
+            try {
+                const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`;
+                
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+
+                if (data.chart && data.chart.result && data.chart.result[0]) {
+                    const result = data.chart.result[0];
+                    const meta = result.meta;
+                    const price = meta.regularMarketPrice;
+                    const prevClose = meta.previousClose || meta.chartPreviousClose;
+                    
+                    priceEl.textContent = '$' + price.toFixed(2);
+                    
+                    if (prevClose) {
+                        const change = ((price - prevClose) / prevClose * 100);
+                        const sign = change >= 0 ? '+' : '';
+                        changeEl.textContent = sign + change.toFixed(2) + '%';
+                        changeEl.className = 'current-price-change ' + (change >= 0 ? 'up' : 'down');
+                    }
+                } else {
+                    priceEl.textContent = '—';
+                    changeEl.textContent = '';
+                }
+            } catch (error) {
+                console.error('Price fetch error:', error);
+                priceEl.textContent = '—';
+                changeEl.textContent = '';
+            }
+        }
+
+        // Fetch price for table display
+        async function fetchPriceForTable(ticker) {
+            try {
+                const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`;
+                
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+
+                if (data.chart && data.chart.result && data.chart.result[0]) {
+                    const meta = data.chart.result[0].meta;
+                    const price = meta.regularMarketPrice;
+                    const prevClose = meta.previousClose || meta.chartPreviousClose;
+                    const change = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
+                    
+                    return { price, change };
+                }
+            } catch (error) {
+                console.error('Price fetch error for', ticker, error);
+            }
+            return null;
+        }
+
+        // Cache for prices
+        let priceCache = {};
+
+        // Update prices in table
+        async function updateTablePrices() {
+            const tickers = [...new Set(trades.map(t => t.ticker))];
+            
+            for (const ticker of tickers) {
+                const priceData = await fetchPriceForTable(ticker);
+                if (priceData) {
+                    priceCache[ticker] = priceData;
+                    
+                    // Update all cells with this ticker
+                    document.querySelectorAll(`.price-cell[data-ticker="${ticker}"]`).forEach(cell => {
+                        const sign = priceData.change >= 0 ? '+' : '';
+                        const changeClass = priceData.change >= 0 ? 'up' : 'down';
+                        cell.innerHTML = `
+                            $${priceData.price.toFixed(2)}
+                            <span class="price-change ${changeClass}">${sign}${priceData.change.toFixed(2)}%</span>
+                        `;
+                    });
+                }
+            }
+        }
 
         function calculatePnL(trade) {
             if (!trade.exitPrice || trade.status === 'open') return 0;
