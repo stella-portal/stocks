@@ -656,6 +656,129 @@
             font-size: 13px;
         }
 
+        /* Stats Section */
+        .stats-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .stats-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .monthly-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .month-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            gap: 16px;
+        }
+
+        .month-name {
+            width: 120px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .month-bar-container {
+            flex: 1;
+            height: 24px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .month-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .month-bar.positive {
+            background: linear-gradient(90deg, var(--green-dim), var(--green));
+        }
+
+        .month-bar.negative {
+            background: linear-gradient(90deg, var(--red), var(--red-dim));
+            float: right;
+        }
+
+        .month-value {
+            width: 100px;
+            text-align: right;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+        }
+
+        .month-value.positive {
+            color: var(--green);
+        }
+
+        .month-value.negative {
+            color: var(--red);
+        }
+
+        .month-trades {
+            width: 80px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .overall-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .overall-stat-card {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .overall-stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .overall-stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .overall-stat-value.positive {
+            color: var(--green);
+        }
+
+        .overall-stat-value.negative {
+            color: var(--red);
+        }
+
+        .no-stats {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
         /* Watchlist specific */
         .price-info {
             font-family: 'JetBrains Mono', monospace;
@@ -741,12 +864,14 @@
 
         <!-- Tabs -->
         <div class="tabs">
-            <button class="tab active" onclick="switchTab('trades')">Сделки</button>
+            <button class="tab active" onclick="switchTab('open')">Открытые</button>
+            <button class="tab" onclick="switchTab('history')">История</button>
+            <button class="tab" onclick="switchTab('stats')">Статистика</button>
             <button class="tab" onclick="switchTab('watchlist')">Watchlist</button>
         </div>
 
-        <!-- Trades Tab -->
-        <div class="tab-content active" id="tradesTab">
+        <!-- Open Trades Tab -->
+        <div class="tab-content active" id="openTab">
             <div class="table-container">
                 <table>
                     <thead>
@@ -756,17 +881,52 @@
                             <th>Направление</th>
                             <th>Статус</th>
                             <th>Вход</th>
+                            <th>P&L (нереализ.)</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="openTradesBody"></tbody>
+                </table>
+                <div class="empty-state" id="openEmpty">
+                    <div class="empty-state-icon">📈</div>
+                    <p>Нет открытых позиций</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div class="tab-content" id="historyTab">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Тикер</th>
+                            <th>Направление</th>
+                            <th>Статус</th>
+                            <th>Вход</th>
                             <th>Выход</th>
                             <th>P&L</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
-                    <tbody id="tradesBody"></tbody>
+                    <tbody id="historyTradesBody"></tbody>
                 </table>
-                <div class="empty-state" id="tradesEmpty">
-                    <div class="empty-state-icon">📈</div>
-                    <p>Пока нет сделок. Добавь первую!</p>
+                <div class="empty-state" id="historyEmpty">
+                    <div class="empty-state-icon">📜</div>
+                    <p>История сделок пуста</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- Stats Tab -->
+        <div class="tab-content" id="statsTab">
+            <div class="stats-section">
+                <h3 class="stats-title">📊 Результаты по месяцам</h3>
+                <div class="monthly-stats" id="monthlyStats"></div>
+            </div>
+            <div class="stats-section">
+                <h3 class="stats-title">📈 Общая статистика</h3>
+                <div class="overall-stats" id="overallStats"></div>
             </div>
         </div>
 
@@ -1202,6 +1362,11 @@
             
             event.target.classList.add('active');
             document.getElementById(tab + 'Tab').classList.add('active');
+            
+            // Refresh stats when switching to stats tab
+            if (tab === 'stats') {
+                renderStats();
+            }
         }
 
         // Risk Calculator
@@ -1377,34 +1542,49 @@
         }
 
         function renderTrades() {
-            const tbody = document.getElementById('tradesBody');
-            const empty = document.getElementById('tradesEmpty');
+            renderOpenTrades();
+            renderHistoryTrades();
+        }
 
-            if (trades.length === 0) {
+        function renderOpenTrades() {
+            const tbody = document.getElementById('openTradesBody');
+            const empty = document.getElementById('openEmpty');
+            
+            const openTrades = trades.filter(t => t.status === 'open' || t.status === 'partial');
+
+            if (openTrades.length === 0) {
                 tbody.innerHTML = '';
                 empty.style.display = 'block';
                 return;
             }
 
             empty.style.display = 'none';
-            tbody.innerHTML = trades.map(trade => {
-                const pnl = calculatePnL(trade);
-                const pnlClass = pnl >= 0 ? 'positive' : 'negative';
-                const statusClass = trade.status || 'closed';
+            tbody.innerHTML = openTrades.map(trade => {
+                const statusClass = trade.status || 'open';
                 const statusLabels = {
                     open: '🟡 Открыта',
-                    partial: '🟠 Частично',
-                    closed: '🟢 Закрыта',
-                    stopped: '🔴 Стоп'
+                    partial: '🟠 Частично'
                 };
 
-                // Get cached price or show loading
+                // Get cached price for unrealized P&L
                 const cachedPrice = priceCache[trade.ticker];
                 let priceHtml = '<span class="price-loading">...</span>';
+                let unrealizedPnl = 0;
+                let pnlHtml = '<span class="price-loading">...</span>';
+                
                 if (cachedPrice) {
                     const sign = cachedPrice.change >= 0 ? '+' : '';
                     const changeClass = cachedPrice.change >= 0 ? 'up' : 'down';
                     priceHtml = `$${cachedPrice.price.toFixed(2)}<br><span class="price-change ${changeClass}">${sign}${cachedPrice.change.toFixed(2)}%</span>`;
+                    
+                    // Calculate unrealized P&L
+                    if (trade.direction === 'long') {
+                        unrealizedPnl = (cachedPrice.price - trade.entryPrice) * trade.shares;
+                    } else {
+                        unrealizedPnl = (trade.entryPrice - cachedPrice.price) * trade.shares;
+                    }
+                    const pnlClass = unrealizedPnl >= 0 ? 'positive' : 'negative';
+                    pnlHtml = `<span class="pnl ${pnlClass}">${unrealizedPnl >= 0 ? '+' : ''}$${unrealizedPnl.toFixed(2)}</span>`;
                 }
 
                 return `
@@ -1412,10 +1592,9 @@
                         <td class="ticker">${trade.ticker}</td>
                         <td class="price-cell" data-ticker="${trade.ticker}">${priceHtml}</td>
                         <td><span class="direction ${trade.direction}">${trade.direction.toUpperCase()}</span></td>
-                        <td><span class="status ${statusClass}">${statusLabels[statusClass] || statusLabels.closed}</span></td>
+                        <td><span class="status ${statusClass}">${statusLabels[statusClass]}</span></td>
                         <td>${trade.entryDate}<br><span style="color:var(--text-muted)">$${trade.entryPrice}</span></td>
-                        <td>${trade.exitDate || '—'}<br><span style="color:var(--text-muted)">${trade.exitPrice ? '$' + trade.exitPrice : '—'}</span></td>
-                        <td class="pnl ${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td>
+                        <td>${pnlHtml}</td>
                         <td class="actions">
                             <button class="action-btn" onclick="editTrade('${trade.id}')" title="Редактировать">✏️</button>
                             <button class="action-btn delete" onclick="deleteTrade('${trade.id}')" title="Удалить">🗑️</button>
@@ -1426,6 +1605,147 @@
 
             // Fetch prices for table
             updateTablePrices();
+        }
+
+        function renderHistoryTrades() {
+            const tbody = document.getElementById('historyTradesBody');
+            const empty = document.getElementById('historyEmpty');
+            
+            const closedTrades = trades.filter(t => t.status === 'closed' || t.status === 'stopped');
+
+            if (closedTrades.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = closedTrades.map(trade => {
+                const pnl = calculatePnL(trade);
+                const pnlClass = pnl >= 0 ? 'positive' : 'negative';
+                const statusClass = trade.status || 'closed';
+                const statusLabels = {
+                    closed: '🟢 Закрыта',
+                    stopped: '🔴 Стоп'
+                };
+
+                return `
+                    <tr>
+                        <td class="ticker">${trade.ticker}</td>
+                        <td><span class="direction ${trade.direction}">${trade.direction.toUpperCase()}</span></td>
+                        <td><span class="status ${statusClass}">${statusLabels[statusClass] || '🟢 Закрыта'}</span></td>
+                        <td>${trade.entryDate}<br><span style="color:var(--text-muted)">$${trade.entryPrice}</span></td>
+                        <td>${trade.exitDate || '—'}<br><span style="color:var(--text-muted)">${trade.exitPrice ? '$' + trade.exitPrice : '—'}</span></td>
+                        <td class="pnl ${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td>
+                        <td class="actions">
+                            <button class="action-btn" onclick="editTrade('${trade.id}')" title="Редактировать">✏️</button>
+                            <button class="action-btn delete" onclick="deleteTrade('${trade.id}')" title="Удалить">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderStats() {
+            const monthlyContainer = document.getElementById('monthlyStats');
+            const overallContainer = document.getElementById('overallStats');
+            
+            const closedTrades = trades.filter(t => t.status === 'closed' || t.status === 'stopped');
+            
+            if (closedTrades.length === 0) {
+                monthlyContainer.innerHTML = '<div class="no-stats">Нет закрытых сделок для анализа</div>';
+                overallContainer.innerHTML = '';
+                return;
+            }
+
+            // Group by month
+            const monthlyData = {};
+            closedTrades.forEach(trade => {
+                const date = trade.exitDate || trade.entryDate;
+                if (!date) return;
+                
+                const monthKey = date.substring(0, 7); // YYYY-MM
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = { pnl: 0, trades: 0, wins: 0 };
+                }
+                
+                const pnl = calculatePnL(trade);
+                monthlyData[monthKey].pnl += pnl;
+                monthlyData[monthKey].trades++;
+                if (pnl > 0) monthlyData[monthKey].wins++;
+            });
+
+            // Sort months
+            const sortedMonths = Object.keys(monthlyData).sort().reverse();
+            
+            // Find max absolute value for bar scaling
+            const maxAbs = Math.max(...Object.values(monthlyData).map(m => Math.abs(m.pnl)), 1);
+
+            // Render monthly stats
+            const monthNames = {
+                '01': 'Январь', '02': 'Февраль', '03': 'Март', '04': 'Апрель',
+                '05': 'Май', '06': 'Июнь', '07': 'Июль', '08': 'Август',
+                '09': 'Сентябрь', '10': 'Октябрь', '11': 'Ноябрь', '12': 'Декабрь'
+            };
+
+            monthlyContainer.innerHTML = sortedMonths.map(month => {
+                const data = monthlyData[month];
+                const [year, m] = month.split('-');
+                const monthName = `${monthNames[m]} ${year}`;
+                const isPositive = data.pnl >= 0;
+                const barWidth = Math.abs(data.pnl) / maxAbs * 100;
+                
+                return `
+                    <div class="month-row">
+                        <span class="month-name">${monthName}</span>
+                        <div class="month-bar-container">
+                            <div class="month-bar ${isPositive ? 'positive' : 'negative'}" style="width: ${barWidth}%"></div>
+                        </div>
+                        <span class="month-value ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : ''}$${data.pnl.toFixed(0)}</span>
+                        <span class="month-trades">${data.trades} сделок</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Calculate overall stats
+            const totalPnl = closedTrades.reduce((sum, t) => sum + calculatePnL(t), 0);
+            const totalTrades = closedTrades.length;
+            const wins = closedTrades.filter(t => calculatePnL(t) > 0).length;
+            const losses = closedTrades.filter(t => calculatePnL(t) < 0).length;
+            const winRate = totalTrades > 0 ? (wins / totalTrades * 100) : 0;
+            const avgWin = wins > 0 ? closedTrades.filter(t => calculatePnL(t) > 0).reduce((sum, t) => sum + calculatePnL(t), 0) / wins : 0;
+            const avgLoss = losses > 0 ? closedTrades.filter(t => calculatePnL(t) < 0).reduce((sum, t) => sum + calculatePnL(t), 0) / losses : 0;
+
+            overallContainer.innerHTML = `
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Общий P&L</div>
+                    <div class="overall-stat-value ${totalPnl >= 0 ? 'positive' : 'negative'}">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(0)}</div>
+                </div>
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Win Rate</div>
+                    <div class="overall-stat-value">${winRate.toFixed(0)}%</div>
+                </div>
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Всего сделок</div>
+                    <div class="overall-stat-value">${totalTrades}</div>
+                </div>
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Прибыльных</div>
+                    <div class="overall-stat-value positive">${wins}</div>
+                </div>
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Убыточных</div>
+                    <div class="overall-stat-value negative">${losses}</div>
+                </div>
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Средняя прибыль</div>
+                    <div class="overall-stat-value positive">+$${avgWin.toFixed(0)}</div>
+                </div>
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Средний убыток</div>
+                    <div class="overall-stat-value negative">$${avgLoss.toFixed(0)}</div>
+                </div>
+            `;
         }
 
         // Add event listener for direction change to recalculate risk
