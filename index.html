@@ -1,0 +1,2047 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Journal | NASDAQ</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0c;
+            --bg-secondary: #111114;
+            --bg-card: #161619;
+            --bg-hover: #1c1c20;
+            --border: #252529;
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --green: #22c55e;
+            --green-dim: rgba(34, 197, 94, 0.12);
+            --red: #ef4444;
+            --red-dim: rgba(239, 68, 68, 0.12);
+            --blue: #3b82f6;
+            --blue-dim: rgba(59, 130, 246, 0.12);
+            --yellow: #eab308;
+            --yellow-dim: rgba(234, 179, 8, 0.12);
+            --purple: #a855f7;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--green), var(--blue));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .sync-status {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .sync-dot.connected { background: var(--green); }
+        .sync-dot.syncing { background: var(--yellow); animation: pulse 1s infinite; }
+        .sync-dot.error { background: var(--red); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--green);
+            color: #000;
+        }
+
+        .btn-primary:hover { background: #16a34a; }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover { background: var(--bg-hover); }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        /* Setup Banner */
+        .setup-banner {
+            background: linear-gradient(135deg, var(--blue-dim), var(--purple));
+            border: 1px solid var(--blue);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .setup-banner.active { display: block; }
+
+        .setup-banner h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .setup-banner p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .setup-form {
+            display: flex;
+            gap: 12px;
+        }
+
+        .setup-form input {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-value.positive { color: var(--green); }
+        .stat-value.negative { color: var(--red); }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            background: var(--bg-secondary);
+            padding: 4px;
+            border-radius: 10px;
+            width: fit-content;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--text-secondary);
+            background: transparent;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .tab:hover:not(.active) { color: var(--text-primary); }
+
+        /* Tab Content */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Table */
+        .table-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background: var(--bg-secondary);
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        tr:not(:last-child) td {
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:hover td { background: var(--bg-hover); }
+
+        .ticker {
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .direction {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .direction.long {
+            background: var(--green-dim);
+            color: var(--green);
+        }
+
+        .direction.short {
+            background: var(--red-dim);
+            color: var(--red);
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status.open {
+            background: var(--yellow-dim);
+            color: var(--yellow);
+        }
+
+        .status.closed {
+            background: var(--green-dim);
+            color: var(--green);
+        }
+
+        .status.stopped {
+            background: var(--red-dim);
+            color: var(--red);
+        }
+
+        .pnl {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        .pnl.positive { color: var(--green); }
+        .pnl.negative { color: var(--red); }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .action-btn.delete:hover {
+            background: var(--red-dim);
+            color: var(--red);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .modal-close:hover { color: var(--text-primary); }
+
+        .modal-body { padding: 24px; }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            padding-top: 8px;
+        }
+
+        .form-actions .btn { flex: 1; }
+
+        /* Autocomplete */
+        .autocomplete-wrapper {
+            position: relative;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-top: 4px;
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .autocomplete-dropdown.active {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .autocomplete-ticker {
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-primary);
+        }
+
+        .autocomplete-name {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-left: 12px;
+            text-align: right;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .autocomplete-loading {
+            padding: 12px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* Risk Calculator */
+        .risk-calculator {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 20px;
+        }
+
+        .risk-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .risk-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .risk-item.loss {
+            background: var(--red-dim);
+        }
+
+        .risk-item.profit {
+            background: var(--green-dim);
+        }
+
+        .risk-item.ratio {
+            background: var(--blue-dim);
+        }
+
+        .risk-label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .risk-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .risk-item.loss .risk-value {
+            color: var(--red);
+        }
+
+        .risk-item.profit .risk-value {
+            color: var(--green);
+        }
+
+        .risk-item.ratio .risk-value {
+            color: var(--blue);
+        }
+
+        .exit-fields {
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+            margin-top: 8px;
+        }
+
+        /* Current Price Display */
+        .current-price-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 14px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            min-height: 46px;
+        }
+
+        .current-price-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .current-price-change {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .current-price-change.up {
+            color: var(--green);
+            background: var(--green-dim);
+        }
+
+        .current-price-change.down {
+            color: var(--red);
+            background: var(--red-dim);
+        }
+
+        .refresh-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .refresh-btn:hover {
+            opacity: 1;
+        }
+
+        .price-loading {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* Stats Section */
+        .stats-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .stats-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .monthly-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .month-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            gap: 16px;
+        }
+
+        .month-name {
+            width: 120px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .month-bar-container {
+            flex: 1;
+            height: 24px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .month-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .month-bar.positive {
+            background: linear-gradient(90deg, var(--green-dim), var(--green));
+        }
+
+        .month-bar.negative {
+            background: linear-gradient(90deg, var(--red), var(--red-dim));
+            float: right;
+        }
+
+        .month-value {
+            width: 100px;
+            text-align: right;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+        }
+
+        .month-value.positive {
+            color: var(--green);
+        }
+
+        .month-value.negative {
+            color: var(--red);
+        }
+
+        .month-trades {
+            width: 80px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .overall-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .overall-stat-card {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .overall-stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .overall-stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .overall-stat-value.positive {
+            color: var(--green);
+        }
+
+        .overall-stat-value.negative {
+            color: var(--red);
+        }
+
+        .no-stats {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        /* Watchlist specific */
+        .price-info {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .price-change {
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        .price-change.up { color: var(--green); }
+        .price-change.down { color: var(--red); }
+
+        .level {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 20px 16px; }
+            
+            .header { flex-direction: column; align-items: flex-start; }
+            
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            
+            .table-container { overflow-x: auto; }
+            
+            table { min-width: 600px; }
+            
+            .setup-form { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">📊</div>
+                Trading Journal
+            </div>
+            <div class="header-actions">
+                <div class="sync-status">
+                    <span class="sync-dot" id="syncDot"></span>
+                    <span id="syncText">Не подключено</span>
+                </div>
+                <button class="btn btn-secondary btn-icon" onclick="showSetup()" title="Настройки">⚙️</button>
+                <button class="btn btn-primary" onclick="showAddTrade()">+ Сделка</button>
+            </div>
+        </header>
+
+        <!-- Setup Banner -->
+        <div class="setup-banner" id="setupBanner">
+            <h3>🔗 Подключение</h3>
+            <p>Google Sheets для синхронизации + Finnhub для котировок</p>
+            <div class="setup-form" style="flex-direction:column;gap:12px;">
+                <div style="display:flex;gap:12px;">
+                    <input type="text" id="scriptUrl" placeholder="Google Apps Script URL" style="flex:2;">
+                    <input type="text" id="finnhubKeyInput" placeholder="Finnhub API ключ" style="flex:1;">
+                </div>
+                <div style="display:flex;gap:12px;">
+                    <button class="btn btn-primary" onclick="connectAll()">Подключить</button>
+                    <a href="https://finnhub.io/register" target="_blank" class="btn btn-secondary" style="text-decoration:none;text-align:center;">Получить ключ Finnhub →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Всего сделок</div>
+                <div class="stat-value" id="totalTrades">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Win Rate</div>
+                <div class="stat-value" id="winRate">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Общий P&L</div>
+                <div class="stat-value" id="totalPnl">$0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Открытые</div>
+                <div class="stat-value" id="openTrades">0</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('open')">Открытые</button>
+            <button class="tab" onclick="switchTab('history')">История</button>
+            <button class="tab" onclick="switchTab('stats')">Статистика</button>
+            <button class="tab" onclick="switchTab('watchlist')">Watchlist</button>
+        </div>
+
+        <!-- Open Trades Tab -->
+        <div class="tab-content active" id="openTab">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Тикер</th>
+                            <th>Цена сейчас</th>
+                            <th>Направление</th>
+                            <th>Статус</th>
+                            <th>Вход</th>
+                            <th>P&L (нереализ.)</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="openTradesBody"></tbody>
+                </table>
+                <div class="empty-state" id="openEmpty">
+                    <div class="empty-state-icon">📈</div>
+                    <p>Нет открытых позиций</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div class="tab-content" id="historyTab">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Тикер</th>
+                            <th>Направление</th>
+                            <th>Статус</th>
+                            <th>Вход</th>
+                            <th>Выход</th>
+                            <th>P&L</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTradesBody"></tbody>
+                </table>
+                <div class="empty-state" id="historyEmpty">
+                    <div class="empty-state-icon">📜</div>
+                    <p>История сделок пуста</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Tab -->
+        <div class="tab-content" id="statsTab">
+            <div class="stats-section">
+                <h3 class="stats-title">📊 Результаты по месяцам</h3>
+                <div class="monthly-stats" id="monthlyStats"></div>
+            </div>
+            <div class="stats-section">
+                <h3 class="stats-title">📈 Общая статистика</h3>
+                <div class="overall-stats" id="overallStats"></div>
+            </div>
+        </div>
+
+        <!-- Watchlist Tab -->
+        <div class="tab-content" id="watchlistTab">
+            <div style="margin-bottom: 16px;">
+                <button class="btn btn-secondary" onclick="showAddWatchlist()">+ Добавить в Watchlist</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Тикер</th>
+                            <th>Цена</th>
+                            <th>Поддержка</th>
+                            <th>Сопротивление</th>
+                            <th>Заметка</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="watchlistBody"></tbody>
+                </table>
+                <div class="empty-state" id="watchlistEmpty">
+                    <div class="empty-state-icon">👀</div>
+                    <p>Watchlist пуст. Добавь акции для отслеживания!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Trade Modal -->
+    <div class="modal-overlay" id="tradeModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="tradeModalTitle">Новая сделка</h2>
+                <button class="modal-close" onclick="closeModal('tradeModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="tradeForm" onsubmit="saveTrade(event)">
+                    <input type="hidden" id="tradeId">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Тикер</label>
+                            <div class="autocomplete-wrapper">
+                                <input type="text" id="tradeTicker" required placeholder="Начни вводить..." autocomplete="off" onchange="fetchCurrentPrice()">
+                                <div class="autocomplete-dropdown" id="tickerDropdown"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Текущая цена</label>
+                            <div class="current-price-display" id="currentPriceDisplay">
+                                <span class="current-price-value" id="currentPriceValue">—</span>
+                                <span class="current-price-change" id="currentPriceChange"></span>
+                                <button type="button" class="refresh-btn" onclick="fetchCurrentPrice()" title="Обновить">🔄</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Направление</label>
+                            <select id="tradeDirection">
+                                <option value="long">Long</option>
+                                <option value="short">Short</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Статус</label>
+                            <select id="tradeStatus" onchange="onStatusChange()">
+                                <option value="open">🟡 Открыта</option>
+                                <option value="partial">🟠 Частично закрыта</option>
+                                <option value="closed">🟢 Закрыта</option>
+                                <option value="stopped">🔴 Стоп</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Дата входа</label>
+                            <input type="date" id="tradeEntryDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Дата выхода</label>
+                            <input type="date" id="tradeExitDate">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Цена входа</label>
+                            <input type="number" id="tradeEntryPrice" step="0.01" required placeholder="150.00" oninput="calculateRisk()">
+                        </div>
+                        <div class="form-group">
+                            <label>Кол-во акций</label>
+                            <input type="number" id="tradeShares" required placeholder="100" oninput="calculateRisk()">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Stop Loss</label>
+                            <input type="number" id="tradeStopLoss" step="0.01" placeholder="145.00" oninput="calculateRisk()">
+                        </div>
+                        <div class="form-group">
+                            <label>Take Profit</label>
+                            <input type="number" id="tradeTakeProfit" step="0.01" placeholder="165.00" oninput="calculateRisk()">
+                        </div>
+                    </div>
+
+                    <!-- Risk/Reward Calculator -->
+                    <div class="risk-calculator" id="riskCalculator">
+                        <div class="risk-row">
+                            <div class="risk-item loss">
+                                <span class="risk-label">Риск (SL)</span>
+                                <span class="risk-value" id="riskLoss">—</span>
+                            </div>
+                            <div class="risk-item profit">
+                                <span class="risk-label">Прибыль (TP)</span>
+                                <span class="risk-value" id="riskProfit">—</span>
+                            </div>
+                            <div class="risk-item ratio">
+                                <span class="risk-label">R/R</span>
+                                <span class="risk-value" id="riskRatio">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exit fields - shown only when status is not "open" -->
+                    <div class="exit-fields" id="exitFields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Дата выхода</label>
+                                <input type="date" id="tradeExitDate2">
+                            </div>
+                            <div class="form-group">
+                                <label>Цена выхода</label>
+                                <input type="number" id="tradeExitPrice" step="0.01" placeholder="160.00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Тезис (почему вошёл)</label>
+                        <textarea id="tradeThesis" placeholder="Описание идеи..."></textarea>
+                    </div>
+
+                    <div class="form-group" id="exitReasonGroup" style="display: none;">
+                        <label>Причина выхода</label>
+                        <textarea id="tradeExitReason" placeholder="Почему закрыл позицию..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('tradeModal')">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Watchlist Modal -->
+    <div class="modal-overlay" id="watchlistModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Добавить в Watchlist</h2>
+                <button class="modal-close" onclick="closeModal('watchlistModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="watchlistForm" onsubmit="saveWatchlist(event)">
+                    <input type="hidden" id="watchlistId">
+                    
+                    <div class="form-group">
+                        <label>Тикер</label>
+                        <div class="autocomplete-wrapper">
+                            <input type="text" id="watchlistTicker" required placeholder="Начни вводить..." autocomplete="off">
+                            <div class="autocomplete-dropdown" id="watchlistTickerDropdown"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Поддержка</label>
+                            <input type="number" id="watchlistSupport" step="0.01" placeholder="450.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Сопротивление</label>
+                            <input type="number" id="watchlistResistance" step="0.01" placeholder="500.00">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Заметка</label>
+                        <textarea id="watchlistNote" placeholder="На что обратить внимание..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('watchlistModal')">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let trades = [];
+        let watchlist = [];
+        let scriptUrl = localStorage.getItem('scriptUrl') || '';
+        let finnhubKey = localStorage.getItem('finnhubKey') || '';
+        let editingTradeId = null;
+        let searchTimeout = null;
+
+        // ========== FINNHUB API ==========
+        
+        async function finnhubFetch(endpoint) {
+            if (!finnhubKey) return null;
+            try {
+                const resp = await fetch(`https://finnhub.io/api/v1${endpoint}${endpoint.includes('?') ? '&' : '?'}token=${finnhubKey}`);
+                if (resp.status === 429) {
+                    console.warn('Finnhub rate limit, waiting...');
+                    await new Promise(r => setTimeout(r, 1200));
+                    const retry = await fetch(`https://finnhub.io/api/v1${endpoint}${endpoint.includes('?') ? '&' : '?'}token=${finnhubKey}`);
+                    if (retry.ok) return await retry.json();
+                    return null;
+                }
+                if (!resp.ok) return null;
+                return await resp.json();
+            } catch (e) {
+                console.error('Finnhub error:', e);
+                return null;
+            }
+        }
+
+        // Ticker Autocomplete via Finnhub
+        function setupAutocomplete(inputId, dropdownId) {
+            const input = document.getElementById(inputId);
+            const dropdown = document.getElementById(dropdownId);
+
+            input.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                
+                if (searchTimeout) clearTimeout(searchTimeout);
+                
+                if (query.length < 1) {
+                    dropdown.classList.remove('active');
+                    return;
+                }
+
+                dropdown.innerHTML = '<div class="autocomplete-loading">Поиск...</div>';
+                dropdown.classList.add('active');
+
+                searchTimeout = setTimeout(() => searchTickers(query, dropdown, input), 400);
+            });
+
+            input.addEventListener('blur', () => {
+                setTimeout(() => dropdown.classList.remove('active'), 200);
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    dropdown.classList.remove('active');
+                }
+            });
+        }
+
+        async function searchTickers(query, dropdown, input) {
+            if (!finnhubKey) {
+                dropdown.innerHTML = '<div class="autocomplete-loading">Нужен Finnhub API ключ</div>';
+                return;
+            }
+            
+            try {
+                const data = await finnhubFetch(`/search?q=${encodeURIComponent(query)}`);
+
+                if (data && data.result && data.result.length > 0) {
+                    // Filter to US stocks/ETFs, skip crypto/forex
+                    const stocks = data.result.filter(s => 
+                        s.type === 'Common Stock' || s.type === 'ETP' || s.type === 'ETF' || s.type === 'ADR' || s.type === 'REIT'
+                    ).filter(s => 
+                        !s.symbol.includes('.') // Skip non-US exchanges like LON, HK
+                    ).slice(0, 6);
+
+                    if (stocks.length === 0) {
+                        dropdown.innerHTML = '<div class="autocomplete-loading">Ничего не найдено</div>';
+                        return;
+                    }
+
+                    dropdown.innerHTML = stocks.map(stock => `
+                        <div class="autocomplete-item" data-symbol="${stock.symbol}">
+                            <span class="autocomplete-ticker">${stock.symbol}</span>
+                            <span class="autocomplete-name">${stock.description || ''}</span>
+                        </div>
+                    `).join('');
+
+                    dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                        item.addEventListener('mousedown', (e) => {
+                            e.preventDefault();
+                            input.value = item.dataset.symbol;
+                            dropdown.classList.remove('active');
+                            if (input.id === 'tradeTicker') {
+                                fetchCurrentPrice();
+                            }
+                        });
+                    });
+                } else {
+                    dropdown.innerHTML = '<div class="autocomplete-loading">Ничего не найдено</div>';
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                dropdown.innerHTML = '<div class="autocomplete-loading">Ошибка поиска</div>';
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            setupAutocomplete('tradeTicker', 'tickerDropdown');
+            setupAutocomplete('watchlistTicker', 'watchlistTickerDropdown');
+
+            document.getElementById('finnhubKeyInput').value = finnhubKey;
+
+            if (scriptUrl) {
+                document.getElementById('scriptUrl').value = scriptUrl;
+                loadData();
+            } else if (finnhubKey) {
+                // Finnhub connected but no sheets — still works for prices
+                updateSyncStatus('connected', 'Finnhub ✓ (без Sheets)');
+            } else {
+                showSetup();
+            }
+        });
+
+        // Setup
+        function showSetup() {
+            document.getElementById('setupBanner').classList.add('active');
+        }
+
+        function hideSetup() {
+            document.getElementById('setupBanner').classList.remove('active');
+        }
+
+        async function connectAll() {
+            const url = document.getElementById('scriptUrl').value.trim();
+            const key = document.getElementById('finnhubKeyInput').value.trim();
+            
+            if (key) {
+                finnhubKey = key;
+                localStorage.setItem('finnhubKey', key);
+            }
+
+            if (url) {
+                scriptUrl = url;
+                localStorage.setItem('scriptUrl', url);
+                updateSyncStatus('syncing', 'Подключение...');
+                try {
+                    await loadData();
+                    hideSetup();
+                } catch (e) {
+                    updateSyncStatus('error', 'Ошибка подключения');
+                    alert('Не удалось подключиться к Sheets. Проверь URL.');
+                }
+            } else if (key) {
+                // Just Finnhub, no sheets
+                updateSyncStatus('connected', 'Finnhub ✓ (без Sheets)');
+                hideSetup();
+            } else {
+                alert('Вставь хотя бы Finnhub API ключ');
+            }
+        }
+
+        function updateSyncStatus(status, text) {
+            const dot = document.getElementById('syncDot');
+            const txt = document.getElementById('syncText');
+            dot.className = 'sync-dot ' + status;
+            txt.textContent = text;
+        }
+
+        // Data Loading
+        async function loadData() {
+            if (!scriptUrl) return;
+
+            updateSyncStatus('syncing', 'Загрузка...');
+
+            try {
+                const response = await fetch(`${scriptUrl}?action=getData`);
+                const data = await response.json();
+
+                if (data.success) {
+                    trades = data.trades || [];
+                    watchlist = data.watchlist || [];
+                    renderTrades();
+                    renderWatchlist();
+                    updateStats();
+                    updateSyncStatus('connected', 'Синхронизировано');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (e) {
+                console.error('Load error:', e);
+                updateSyncStatus('error', 'Ошибка загрузки');
+            }
+        }
+
+        // Save Data
+        async function saveData(type, item, action = 'add') {
+            if (!scriptUrl) {
+                alert('Сначала подключи Google Sheets');
+                showSetup();
+                return false;
+            }
+
+            try {
+                updateSyncStatus('syncing', 'Сохранение...');
+
+                const params = new URLSearchParams({
+                    action: action,
+                    type: type,
+                    data: JSON.stringify(item)
+                });
+
+                const response = await fetch(`${scriptUrl}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    updateSyncStatus('connected', 'Синхронизировано');
+                    return true;
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (e) {
+                console.error('Save error:', e);
+                updateSyncStatus('error', 'Ошибка сохранения');
+                return false;
+            }
+        }
+
+        async function deleteData(type, id) {
+            if (!scriptUrl) return false;
+
+            try {
+                updateSyncStatus('syncing', 'Удаление...');
+
+                const params = new URLSearchParams({
+                    action: 'delete',
+                    type: type,
+                    id: id
+                });
+
+                const response = await fetch(`${scriptUrl}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    updateSyncStatus('connected', 'Синхронизировано');
+                    return true;
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (e) {
+                console.error('Delete error:', e);
+                updateSyncStatus('error', 'Ошибка удаления');
+                return false;
+            }
+        }
+
+        // Tabs
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Tab').classList.add('active');
+            
+            // Refresh stats when switching to stats tab
+            if (tab === 'stats') {
+                renderStats();
+            }
+        }
+
+        // Risk Calculator
+        function calculateRisk() {
+            const direction = document.getElementById('tradeDirection').value;
+            const entryPrice = parseFloat(document.getElementById('tradeEntryPrice').value) || 0;
+            const shares = parseInt(document.getElementById('tradeShares').value) || 0;
+            const stopLoss = parseFloat(document.getElementById('tradeStopLoss').value) || 0;
+            const takeProfit = parseFloat(document.getElementById('tradeTakeProfit').value) || 0;
+
+            const riskLossEl = document.getElementById('riskLoss');
+            const riskProfitEl = document.getElementById('riskProfit');
+            const riskRatioEl = document.getElementById('riskRatio');
+
+            if (!entryPrice || !shares) {
+                riskLossEl.textContent = '—';
+                riskProfitEl.textContent = '—';
+                riskRatioEl.textContent = '—';
+                return;
+            }
+
+            let potentialLoss = 0;
+            let potentialProfit = 0;
+
+            if (direction === 'long') {
+                if (stopLoss > 0) {
+                    potentialLoss = (entryPrice - stopLoss) * shares;
+                }
+                if (takeProfit > 0) {
+                    potentialProfit = (takeProfit - entryPrice) * shares;
+                }
+            } else {
+                // Short
+                if (stopLoss > 0) {
+                    potentialLoss = (stopLoss - entryPrice) * shares;
+                }
+                if (takeProfit > 0) {
+                    potentialProfit = (entryPrice - takeProfit) * shares;
+                }
+            }
+
+            riskLossEl.textContent = potentialLoss > 0 ? `-$${potentialLoss.toFixed(0)}` : '—';
+            riskProfitEl.textContent = potentialProfit > 0 ? `+$${potentialProfit.toFixed(0)}` : '—';
+
+            if (potentialLoss > 0 && potentialProfit > 0) {
+                const ratio = potentialProfit / potentialLoss;
+                riskRatioEl.textContent = `1:${ratio.toFixed(1)}`;
+                riskRatioEl.style.color = ratio >= 2 ? 'var(--green)' : ratio >= 1 ? 'var(--yellow)' : 'var(--red)';
+            } else {
+                riskRatioEl.textContent = '—';
+                riskRatioEl.style.color = '';
+            }
+        }
+
+        // Status Change Handler
+        function onStatusChange() {
+            const status = document.getElementById('tradeStatus').value;
+            const exitFields = document.getElementById('exitFields');
+            const exitReasonGroup = document.getElementById('exitReasonGroup');
+
+            if (status === 'open') {
+                exitFields.style.display = 'none';
+                exitReasonGroup.style.display = 'none';
+            } else {
+                exitFields.style.display = 'block';
+                exitReasonGroup.style.display = 'block';
+            }
+        }
+
+        // Trades
+        function showAddTrade() {
+            editingTradeId = null;
+            document.getElementById('tradeModalTitle').textContent = 'Новая сделка';
+            document.getElementById('tradeForm').reset();
+            document.getElementById('tradeEntryDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('tradeStatus').value = 'open';
+            document.getElementById('exitFields').style.display = 'none';
+            document.getElementById('exitReasonGroup').style.display = 'none';
+            document.getElementById('riskLoss').textContent = '—';
+            document.getElementById('riskProfit').textContent = '—';
+            document.getElementById('riskRatio').textContent = '—';
+            document.getElementById('currentPriceValue').textContent = '—';
+            document.getElementById('currentPriceChange').textContent = '';
+            document.getElementById('currentPriceChange').className = 'current-price-change';
+            document.getElementById('tradeModal').classList.add('active');
+        }
+
+        function editTrade(id) {
+            const trade = trades.find(t => t.id === id);
+            if (!trade) return;
+
+            editingTradeId = id;
+            document.getElementById('tradeModalTitle').textContent = 'Редактировать сделку';
+            document.getElementById('tradeId').value = trade.id;
+            document.getElementById('tradeTicker').value = trade.ticker;
+            document.getElementById('tradeDirection').value = trade.direction;
+            document.getElementById('tradeStatus').value = trade.status || 'closed';
+            document.getElementById('tradeEntryDate').value = trade.entryDate;
+            document.getElementById('tradeExitDate').value = trade.exitDate || '';
+            document.getElementById('tradeEntryPrice').value = trade.entryPrice;
+            document.getElementById('tradeExitPrice').value = trade.exitPrice || '';
+            document.getElementById('tradeShares').value = trade.shares;
+            document.getElementById('tradeStopLoss').value = trade.stopLoss || '';
+            document.getElementById('tradeTakeProfit').value = trade.takeProfit || '';
+            document.getElementById('tradeThesis').value = trade.thesis || '';
+            document.getElementById('tradeExitReason').value = trade.exitReason || '';
+            
+            // Show/hide exit fields based on status
+            const status = trade.status || 'closed';
+            if (status === 'open') {
+                document.getElementById('exitFields').style.display = 'none';
+                document.getElementById('exitReasonGroup').style.display = 'none';
+            } else {
+                document.getElementById('exitFields').style.display = 'block';
+                document.getElementById('exitReasonGroup').style.display = 'block';
+            }
+            
+            calculateRisk();
+            fetchCurrentPrice();
+            document.getElementById('tradeModal').classList.add('active');
+        }
+
+        async function saveTrade(e) {
+            e.preventDefault();
+
+            const trade = {
+                id: editingTradeId || Date.now().toString(),
+                ticker: document.getElementById('tradeTicker').value.toUpperCase(),
+                direction: document.getElementById('tradeDirection').value,
+                status: document.getElementById('tradeStatus').value,
+                entryDate: document.getElementById('tradeEntryDate').value,
+                exitDate: document.getElementById('tradeExitDate').value || document.getElementById('tradeExitDate2')?.value || '',
+                entryPrice: parseFloat(document.getElementById('tradeEntryPrice').value) || 0,
+                exitPrice: parseFloat(document.getElementById('tradeExitPrice').value) || 0,
+                shares: parseInt(document.getElementById('tradeShares').value) || 0,
+                stopLoss: parseFloat(document.getElementById('tradeStopLoss').value) || 0,
+                takeProfit: parseFloat(document.getElementById('tradeTakeProfit').value) || 0,
+                thesis: document.getElementById('tradeThesis').value,
+                exitReason: document.getElementById('tradeExitReason').value
+            };
+
+            // Clear exit data if status is open
+            if (trade.status === 'open') {
+                trade.exitDate = '';
+                trade.exitPrice = 0;
+                trade.exitReason = '';
+            }
+
+            const action = editingTradeId ? 'update' : 'add';
+            const success = await saveData('trade', trade, action);
+
+            if (success) {
+                if (editingTradeId) {
+                    trades = trades.map(t => t.id === trade.id ? trade : t);
+                } else {
+                    trades.push(trade);
+                }
+                renderTrades();
+                updateStats();
+                closeModal('tradeModal');
+            }
+        }
+
+        async function deleteTrade(id) {
+            if (!confirm('Удалить сделку?')) return;
+
+            const success = await deleteData('trade', id);
+            if (success) {
+                trades = trades.filter(t => t.id !== id);
+                renderTrades();
+                updateStats();
+            }
+        }
+
+        function renderTrades() {
+            renderOpenTrades();
+            renderHistoryTrades();
+        }
+
+        function renderOpenTrades() {
+            const tbody = document.getElementById('openTradesBody');
+            const empty = document.getElementById('openEmpty');
+            
+            const openTrades = trades.filter(t => t.status === 'open' || t.status === 'partial');
+
+            if (openTrades.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = openTrades.map(trade => {
+                const statusClass = trade.status || 'open';
+                const statusLabels = {
+                    open: '🟡 Открыта',
+                    partial: '🟠 Частично'
+                };
+
+                // Get cached price for unrealized P&L
+                const cachedPrice = priceCache[trade.ticker];
+                let priceHtml = '<span class="price-loading">...</span>';
+                let unrealizedPnl = 0;
+                let pnlHtml = '<span class="price-loading">...</span>';
+                
+                if (cachedPrice) {
+                    const sign = cachedPrice.change >= 0 ? '+' : '';
+                    const changeClass = cachedPrice.change >= 0 ? 'up' : 'down';
+                    priceHtml = `$${cachedPrice.price.toFixed(2)}<br><span class="price-change ${changeClass}">${sign}${cachedPrice.change.toFixed(2)}%</span>`;
+                    
+                    // Calculate unrealized P&L
+                    if (trade.direction === 'long') {
+                        unrealizedPnl = (cachedPrice.price - trade.entryPrice) * trade.shares;
+                    } else {
+                        unrealizedPnl = (trade.entryPrice - cachedPrice.price) * trade.shares;
+                    }
+                    const pnlClass = unrealizedPnl >= 0 ? 'positive' : 'negative';
+                    pnlHtml = `<span class="pnl ${pnlClass}">${unrealizedPnl >= 0 ? '+' : ''}$${unrealizedPnl.toFixed(2)}</span>`;
+                }
+
+                return `
+                    <tr>
+                        <td class="ticker">${trade.ticker}</td>
+                        <td class="price-cell" data-ticker="${trade.ticker}">${priceHtml}</td>
+                        <td><span class="direction ${trade.direction}">${trade.direction.toUpperCase()}</span></td>
+                        <td><span class="status ${statusClass}">${statusLabels[statusClass]}</span></td>
+                        <td>${trade.entryDate}<br><span style="color:var(--text-muted)">$${trade.entryPrice}</span></td>
+                        <td>${pnlHtml}</td>
+                        <td class="actions">
+                            <button class="action-btn" onclick="editTrade('${trade.id}')" title="Редактировать">✏️</button>
+                            <button class="action-btn delete" onclick="deleteTrade('${trade.id}')" title="Удалить">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Fetch prices for table
+            updateTablePrices();
+        }
+
+        function renderHistoryTrades() {
+            const tbody = document.getElementById('historyTradesBody');
+            const empty = document.getElementById('historyEmpty');
+            
+            const closedTrades = trades.filter(t => t.status === 'closed' || t.status === 'stopped');
+
+            if (closedTrades.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = closedTrades.map(trade => {
+                const pnl = calculatePnL(trade);
+                const pnlClass = pnl >= 0 ? 'positive' : 'negative';
+                const statusClass = trade.status || 'closed';
+                const statusLabels = {
+                    closed: '🟢 Закрыта',
+                    stopped: '🔴 Стоп'
+                };
+
+                return `
+                    <tr>
+                        <td class="ticker">${trade.ticker}</td>
+                        <td><span class="direction ${trade.direction}">${trade.direction.toUpperCase()}</span></td>
+                        <td><span class="status ${statusClass}">${statusLabels[statusClass] || '🟢 Закрыта'}</span></td>
+                        <td>${trade.entryDate}<br><span style="color:var(--text-muted)">$${trade.entryPrice}</span></td>
+                        <td>${trade.exitDate || '—'}<br><span style="color:var(--text-muted)">${trade.exitPrice ? '$' + trade.exitPrice : '—'}</span></td>
+                        <td class="pnl ${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td>
+                        <td class="actions">
+                            <button class="action-btn" onclick="editTrade('${trade.id}')" title="Редактировать">✏️</button>
+                            <button class="action-btn delete" onclick="deleteTrade('${trade.id}')" title="Удалить">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderStats() {
+            const monthlyContainer = document.getElementById('monthlyStats');
+            const overallContainer = document.getElementById('overallStats');
+            
+            const closedTrades = trades.filter(t => t.status === 'closed' || t.status === 'stopped');
+            
+            if (closedTrades.length === 0) {
+                monthlyContainer.innerHTML = '<div class="no-stats">Нет закрытых сделок для анализа</div>';
+                overallContainer.innerHTML = '';
+                return;
+            }
+
+            // Group by month
+            const monthlyData = {};
+            closedTrades.forEach(trade => {
+                const date = trade.exitDate || trade.entryDate;
+                if (!date) return;
+                
+                const monthKey = date.substring(0, 7); // YYYY-MM
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = { pnl: 0, trades: 0, wins: 0 };
+                }
+                
+                const pnl = calculatePnL(trade);
+                monthlyData[monthKey].pnl += pnl;
+                monthlyData[monthKey].trades++;
+                if (pnl > 0) monthlyData[monthKey].wins++;
+            });
+
+            // Sort months
+            const sortedMonths = Object.keys(monthlyData).sort().reverse();
+            
+            // Find max absolute value for bar scaling
+            const maxAbs = Math.max(...Object.values(monthlyData).map(m => Math.abs(m.pnl)), 1);
+
+            // Render monthly stats
+            const monthNames = {
+                '01': 'Январь', '02': 'Февраль', '03': 'Март', '04': 'Апрель',
+                '05': 'Май', '06': 'Июнь', '07': 'Июль', '08': 'Август',
+                '09': 'Сентябрь', '10': 'Октябрь', '11': 'Ноябрь', '12': 'Декабрь'
+            };
+
+            monthlyContainer.innerHTML = sortedMonths.map(month => {
+                const data = monthlyData[month];
+                const [year, m] = month.split('-');
+                const monthName = `${monthNames[m]} ${year}`;
+                const isPositive = data.pnl >= 0;
+                const barWidth = Math.abs(data.pnl) / maxAbs * 100;
+                
+                return `
+                    <div class="month-row">
+                        <span class="month-name">${monthName}</span>
+                        <div class="month-bar-container">
+                            <div class="month-bar ${isPositive ? 'positive' : 'negative'}" style="width: ${barWidth}%"></div>
+                        </div>
+                        <span class="month-value ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : ''}$${data.pnl.toFixed(0)}</span>
+                        <span class="month-trades">${data.trades} сделок</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Calculate overall stats
+            const totalPnl = closedTrades.reduce((sum, t) => sum + calculatePnL(t), 0);
+            const totalTrades = closedTrades.length;
+            const wins = closedTrades.filter(t => calculatePnL(t) > 0).length;
+            const losses = closedTrades.filter(t => calculatePnL(t) < 0).length;
+            const winRate = totalTrades > 0 ? (wins / totalTrades * 100) : 0;
+            const avgWin = wins > 0 ? closedTrades.filter(t => calculatePnL(t) > 0).reduce((sum, t) => sum + calculatePnL(t), 0) / wins : 0;
+            const avgLoss = losses > 0 ? closedTrades.filter(t => calculatePnL(t) < 0).reduce((sum, t) => sum + calculatePnL(t), 0) / losses : 0;
+
+            overallContainer.innerHTML = `
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Общий P&L</div>
+                    <div class="overall-stat-value ${totalPnl >= 0 ? 'positive' : 'negative'}">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(0)}</div>
+                </div>
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Win Rate</div>
+                    <div class="overall-stat-value">${winRate.toFixed(0)}%</div>
+                </div>
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Всего сделок</div>
+                    <div class="overall-stat-value">${totalTrades}</div>
+                </div>
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Прибыльных</div>
+                    <div class="overall-stat-value positive">${wins}</div>
+                </div>
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Убыточных</div>
+                    <div class="overall-stat-value negative">${losses}</div>
+                </div>
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Средняя прибыль</div>
+                    <div class="overall-stat-value positive">+$${avgWin.toFixed(0)}</div>
+                </div>
+                <div class="overall-stat-card">
+                    <div class="overall-stat-label">Средний убыток</div>
+                    <div class="overall-stat-value negative">$${avgLoss.toFixed(0)}</div>
+                </div>
+            `;
+        }
+
+        // Add event listener for direction change to recalculate risk
+        document.getElementById('tradeDirection').addEventListener('change', calculateRisk);
+
+        // Fetch current price via Finnhub
+        async function fetchCurrentPrice() {
+            const ticker = document.getElementById('tradeTicker').value.trim().toUpperCase();
+            const priceEl = document.getElementById('currentPriceValue');
+            const changeEl = document.getElementById('currentPriceChange');
+            
+            if (!ticker) {
+                priceEl.textContent = '—';
+                changeEl.textContent = '';
+                changeEl.className = 'current-price-change';
+                return;
+            }
+
+            if (!finnhubKey) {
+                priceEl.textContent = '—';
+                changeEl.textContent = 'нет ключа';
+                changeEl.className = 'current-price-change down';
+                return;
+            }
+
+            priceEl.innerHTML = '<span class="price-loading">Загрузка...</span>';
+            changeEl.textContent = '';
+
+            try {
+                const data = await finnhubFetch(`/quote?symbol=${ticker}`);
+
+                if (data && data.c && data.c > 0) {
+                    const price = data.c;       // current price
+                    const prevClose = data.pc;   // previous close
+                    
+                    priceEl.textContent = '$' + price.toFixed(2);
+                    
+                    if (prevClose && prevClose > 0) {
+                        const change = ((price - prevClose) / prevClose * 100);
+                        const sign = change >= 0 ? '+' : '';
+                        changeEl.textContent = sign + change.toFixed(2) + '%';
+                        changeEl.className = 'current-price-change ' + (change >= 0 ? 'up' : 'down');
+                    }
+                } else {
+                    priceEl.textContent = '—';
+                    changeEl.textContent = 'нет данных';
+                    changeEl.className = 'current-price-change';
+                }
+            } catch (error) {
+                console.error('Price fetch error:', error);
+                priceEl.textContent = '—';
+                changeEl.textContent = 'ошибка';
+                changeEl.className = 'current-price-change down';
+            }
+        }
+
+        // Fetch price for table display via Finnhub
+        async function fetchPriceForTable(ticker) {
+            if (!finnhubKey) return null;
+            try {
+                const data = await finnhubFetch(`/quote?symbol=${ticker}`);
+                if (data && data.c && data.c > 0) {
+                    const price = data.c;
+                    const prevClose = data.pc || 0;
+                    const change = prevClose > 0 ? ((price - prevClose) / prevClose * 100) : 0;
+                    return { price, change };
+                }
+            } catch (error) {
+                console.error('Price fetch error for', ticker, error);
+            }
+            return null;
+        }
+
+        // Cache for prices
+        let priceCache = {};
+
+        // Update prices in table (with rate limit respect)
+        async function updateTablePrices() {
+            if (!finnhubKey) return;
+            const tickers = [...new Set(trades.filter(t => t.status === 'open' || t.status === 'partial').map(t => t.ticker))];
+            
+            for (let i = 0; i < tickers.length; i++) {
+                const ticker = tickers[i];
+                // Small delay between requests to respect 60/min limit
+                if (i > 0) await new Promise(r => setTimeout(r, 200));
+                
+                const priceData = await fetchPriceForTable(ticker);
+                if (priceData) {
+                    priceCache[ticker] = priceData;
+                    
+                    // Update all cells with this ticker
+                    document.querySelectorAll(`.price-cell[data-ticker="${ticker}"]`).forEach(cell => {
+                        const sign = priceData.change >= 0 ? '+' : '';
+                        const changeClass = priceData.change >= 0 ? 'up' : 'down';
+                        cell.innerHTML = `
+                            $${priceData.price.toFixed(2)}
+                            <span class="price-change ${changeClass}">${sign}${priceData.change.toFixed(2)}%</span>
+                        `;
+                    });
+                    
+                    // Re-render to update P&L
+                    renderOpenTrades();
+                }
+            }
+        }
+
+        function calculatePnL(trade) {
+            if (!trade.exitPrice || trade.status === 'open') return 0;
+            
+            const diff = trade.direction === 'long' 
+                ? trade.exitPrice - trade.entryPrice
+                : trade.entryPrice - trade.exitPrice;
+            
+            return diff * trade.shares;
+        }
+
+        // Watchlist
+        function showAddWatchlist() {
+            document.getElementById('watchlistForm').reset();
+            document.getElementById('watchlistId').value = '';
+            document.getElementById('watchlistModal').classList.add('active');
+        }
+
+        async function saveWatchlist(e) {
+            e.preventDefault();
+
+            const item = {
+                id: document.getElementById('watchlistId').value || Date.now().toString(),
+                ticker: document.getElementById('watchlistTicker').value.toUpperCase(),
+                support: parseFloat(document.getElementById('watchlistSupport').value) || 0,
+                resistance: parseFloat(document.getElementById('watchlistResistance').value) || 0,
+                note: document.getElementById('watchlistNote').value
+            };
+
+            const isEdit = !!document.getElementById('watchlistId').value;
+            const success = await saveData('watchlist', item, isEdit ? 'update' : 'add');
+
+            if (success) {
+                if (isEdit) {
+                    watchlist = watchlist.map(w => w.id === item.id ? {...w, ...item} : w);
+                } else {
+                    watchlist.push(item);
+                }
+                renderWatchlist();
+                closeModal('watchlistModal');
+            }
+        }
+
+        async function deleteWatchlistItem(id) {
+            if (!confirm('Удалить из watchlist?')) return;
+
+            const success = await deleteData('watchlist', id);
+            if (success) {
+                watchlist = watchlist.filter(w => w.id !== id);
+                renderWatchlist();
+            }
+        }
+
+        function renderWatchlist() {
+            const tbody = document.getElementById('watchlistBody');
+            const empty = document.getElementById('watchlistEmpty');
+
+            if (watchlist.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = watchlist.map(item => {
+                const changeClass = (item.priceChange || 0) >= 0 ? 'up' : 'down';
+                const changeSign = (item.priceChange || 0) >= 0 ? '+' : '';
+
+                return `
+                    <tr>
+                        <td class="ticker">${item.ticker}</td>
+                        <td class="price-info" id="wl-price-${item.id}">
+                            ${item.currentPrice ? '$' + item.currentPrice.toFixed(2) : '<span class="price-loading">...</span>'}
+                            ${item.priceChange ? `<span class="price-change ${changeClass}">${changeSign}${item.priceChange.toFixed(2)}%</span>` : ''}
+                        </td>
+                        <td class="level">${item.support ? '$' + item.support : '—'}</td>
+                        <td class="level">${item.resistance ? '$' + item.resistance : '—'}</td>
+                        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${item.note || '—'}</td>
+                        <td class="actions">
+                            <button class="action-btn delete" onclick="deleteWatchlistItem('${item.id}')" title="Удалить">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Fetch prices for watchlist
+            updateWatchlistPrices();
+        }
+
+        async function updateWatchlistPrices() {
+            if (!finnhubKey || watchlist.length === 0) return;
+
+            for (let i = 0; i < watchlist.length; i++) {
+                const item = watchlist[i];
+                if (i > 0) await new Promise(r => setTimeout(r, 200));
+
+                const priceData = await fetchPriceForTable(item.ticker);
+                if (priceData) {
+                    item.currentPrice = priceData.price;
+                    item.priceChange = priceData.change;
+
+                    const cell = document.getElementById(`wl-price-${item.id}`);
+                    if (cell) {
+                        const sign = priceData.change >= 0 ? '+' : '';
+                        const cls = priceData.change >= 0 ? 'up' : 'down';
+                        cell.innerHTML = `$${priceData.price.toFixed(2)} <span class="price-change ${cls}">${sign}${priceData.change.toFixed(2)}%</span>`;
+                    }
+                }
+            }
+        }
+
+        // Stats
+        function updateStats() {
+            const closedTrades = trades.filter(t => t.status !== 'open');
+            const totalPnl = closedTrades.reduce((sum, t) => sum + calculatePnL(t), 0);
+            const wins = closedTrades.filter(t => calculatePnL(t) > 0).length;
+            const winRate = closedTrades.length > 0 ? (wins / closedTrades.length * 100) : 0;
+            const openCount = trades.filter(t => t.status === 'open').length;
+
+            document.getElementById('totalTrades').textContent = trades.length;
+            document.getElementById('winRate').textContent = winRate.toFixed(0) + '%';
+            
+            const pnlEl = document.getElementById('totalPnl');
+            pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
+            pnlEl.className = 'stat-value ' + (totalPnl >= 0 ? 'positive' : 'negative');
+
+            document.getElementById('openTrades').textContent = openCount;
+        }
+
+        // Modal
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // Close on escape/overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+            }
+        });
+    </script>
+</body>
+</html>
